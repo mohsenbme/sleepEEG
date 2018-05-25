@@ -1,3 +1,4 @@
+import numpy as np
 def morlet_spectrogram(sig, samp_rate, freq_range, f_step, wave_num, timescale):
     # example freq_range: [2, 18]
     # f_step: freq resoulution in Hz (e.g., 0.1 Hz)
