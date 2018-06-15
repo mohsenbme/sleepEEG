@@ -18,8 +18,9 @@ def myEEGbursts(X,fs,ind_epoch,fc,bw,thrfactor=4,epl=30,rjth=200,intrvmin=0.25):
         spindle_pks.append([])
         
     
-    for j in range(0,X.shape[0]):
+    for j in range(0,3):#X.shape[0]):
         # finding clean epochs for baseline activity calculation
+        print(j)
         ind_cln=[]
         for e in range(0,len(ind_epoch)):
             if max(abs(signal.filtfilt(b2,a2,X[j][int(ind_epoch[e]*epl*fs):int((ind_epoch[e]+1)*epl*fs)])))<rjth:
