@@ -38,10 +38,10 @@ def myEEGbursts(X,fs,ind_epoch,fc,bw,thrfactor=4,epl=30,rjth=200,intrvmin=0.25):
         
         # finding EEG bursts by applying the criteria to the average spectrogram
         for e in range(0,len(ind_epoch)):
-            intrv, pks = bnds_over_th(spec[e],thfac*th,ind_epoch[e]*epl*fs)
+            intrv, pks = bnds_over_th(spec[e],thrfactor*th,ind_epoch[e]*epl*fs)
             for i in range(0,len(pks)):
                 if (intrv[i][1]-intrv[i][0])/fs>intrvmin and max(abs(signal.filtfilt(b2,a2,X[j][int(intrv[i][0]):int(intrv[i][1])])))<(0.4*rjth):
                     spindle_intrv[j].append(intrv[i])
                     spindle_pks[j].append(pks[i])
-        return spindle_intrv
+    return spindle_intrv
        
