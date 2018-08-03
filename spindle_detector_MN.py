@@ -2,46 +2,7 @@ import numpy as np
 import scipy.io as sio
 from scipy import signal
 import os
-
-
-edf_path='/Volumes/Mohsen/PSTIM/allscalp/PSTIM_729_V1.edf' # change the pathes or use a function
-stages_path='/Volumes/Mohsen/PSTIM/allscalp/PSTIM_729_V1.mat'
-
-if not os.path.exists(edf_dir+'spindles'):
-    os.makedirs(edf_dir+'spindles')
-
-print('reading EDF...')
-X, fs, Channels= myEDFread(edf_path)
-
-print('reading sleep stages...')
-mat_contents = sio.loadmat(stages_path)
-stageData= mat_contents['stageData']
-val=stageData[0,0]
-mrk=val['stages']
-
-print('calculating power spectra...')
-P, f= myEPOCHpower(X, int(fs), 1)
-
-ind2=[i for i, x in enumerate(mrk==2) if x] # indices for stage 2 epochs
-# ind2 = [i for i in ind2 if i <= min(np.shape(P)[1],ind2[-1])]
-print('estimating spindle peak frequency (Stage 2)...')
-fpk_stg2= myspecpeak(P,f,ind2)
-print('spindle detection (Stage 2)...')
-spindle_intrv_stg2= myEEGbursts(X,fs,ind2,fpk_stg2,3)
-print('spindle refinement (Stage 2)...')
-spindle_intrv_stg2= myspindle_refine(X,spindle_intrv_stg2)
-
-ind3=[i for i, x in enumerate(mrk==3) if x] # indices for stage 3 epochs
-# ind3 = [i for i in ind3 if i <= min(np.shape(P)[1],ind3[-1])]
-print('estimating spindle peak frequency (SWS)...')
-fpk_stg3= myspecpeak(P,f,ind3)
-print('spindle detection (SWS)...')
-spindle_intrv_stg3= myEEGbursts(X,fs,ind2,fpk_stg3,3)
-print('spindle refinement (SWS)...')
-spindle_intrv_stg3= myspindle_refine(X,spindle_intrv_stg3)
-
-print('saving outputs to mat')
-sio.savemat(edf_path[1:-3]+'_spindles',{"Channels":Channels,"fs":fs,"spindle_intrv_stg2":spindle_intrv_stg2,"spindle_intrv_stg3":spindle_intrv_stg3})
+################
 
 ################
 def myEDFread(path):
@@ -185,9 +146,9 @@ def myEEGbursts(X,fs,ind_epoch,fc,bw,thrfactor=4,epl=30,rjth=200,intrvmin=0.25):
         spindle_pks.append([])
         
     
-    for j in range(0,3):#X.shape[0]):
+    for j in range(0,X.shape[0]):
         # finding clean epochs for baseline activity calculation
-        print(j)
+        # print(j)
         ind_cln=[]
         for e in range(0,len(ind_epoch)):
             if max(abs(signal.filtfilt(b2,a2,X[j][int(ind_epoch[e]*epl*fs):int((ind_epoch[e]+1)*epl*fs)])))<rjth:
@@ -249,7 +210,7 @@ def bnds_over_th(a,th,ep_beg):
 def morlet_spectrogram(sig, samp_rate, freq_range, f_step, wave_num, timescale):
     # example freq_range: [2, 18]
     # f_step: freq resoulution in Hz (e.g., 0.1 Hz)
-    # wave_num: parameter for number of sinuspidal cycles in a morlet, 10 worked well for eeg
+    # wave_num: parameter for number of sinusoidal cycles in a morlet, 10 worked well for eeg
     # timescale: 5 worked well for eeg
     frecs=np.arange(freq_range[0], freq_range[1]+f_step, f_step)
     len_sig = len(sig)
@@ -268,11 +229,11 @@ def morlet_spectrogram(sig, samp_rate, freq_range, f_step, wave_num, timescale):
     return EP_energy
         
 def myspindle_refine(X,spindle_intrv):
-    for j in range(0,X.shape[1]):
+    for j in range(0,X.shape[0]):
         issp=[]
-        print(len(spindle_intrv_stg2[j]))
-        for i in range(0,len(spindle_intrv_stg2[j])):
-            if not mytest_spindle(X[j][int(spindle_intrv[j][i][0]):int(spindle_intrv_stg2[j][i][1])],fs):
+        #print(len(spindle_intrv[j]))
+        for i in range(0,len(spindle_intrv[j])):
+            if not mytest_spindle(X[j][int(spindle_intrv[j][i][0]):int(spindle_intrv[j][i][1])],fs):
                 issp.append(i)
         spindle_intrv[j]=np.delete(spindle_intrv[j],issp,0)
     return spindle_intrv
@@ -298,3 +259,75 @@ def mytest_spindle(x,fs):
                                                    
 
 
+###################
+edf_path='/Volumes/Mohsen/PSTIM/allscalp/PSTIM_729_V1.edf' # change the pathes or use a function
+stages_path='/Volumes/Mohsen/PSTIM/allscalp/PSTIM_729_V1.mat'
+
+Q=4
+print('reading EDF...')
+X, fs, Channels= myEDFread(edf_path)
+
+print('reading sleep stages...')
+mat_contents = sio.loadmat(stages_path)
+stageData= mat_contents['stageData']
+val=stageData[0,0]
+mrk=val['stages']
+
+print('calculating power spectra...')
+P, f= myEPOCHpower(X, int(fs), 1)
+
+ind2=[i for i, x in enumerate(mrk==2) if x] # indices for stage 2 epochs
+# ind2 = [i for i in ind2 if i <= min(np.shape(P)[1],ind2[-1])]
+print('estimating spindle peak frequency (Stage 2)...')
+fpk_stg2= myspecpeak(P,f,ind2)
+print('spindle detection (Stage 2)...')
+spindle_intrv_stg2= myEEGbursts(X,fs,ind2,fpk_stg2,3)
+print('spindle refinement (Stage 2)...')
+spindle_intrv_stg2= myspindle_refine(X,spindle_intrv_stg2)
+
+ind3=[i for i, x in enumerate(mrk==3) if x] # indices for stage 3 epochs
+# ind3 = [i for i in ind3 if i <= min(np.shape(P)[1],ind3[-1])]
+print('estimating spindle peak frequency (SWS)...')
+fpk_stg3= myspecpeak(P,f,ind3)
+print('spindle detection (SWS)...')
+spindle_intrv_stg3= myEEGbursts(X,fs,ind2,fpk_stg3,3)
+print('spindle refinement (SWS)...')
+spindle_intrv_stg3= myspindle_refine(X,spindle_intrv_stg3)
+
+qs=int((int((e)*30*fs)-int((o-1)*30*fs))/4)
+Q_spN_stg2=[]
+Q_spN_stg3=[]
+Q_spDns_stg2=[]
+Q_spDns_stg3=[]
+
+for ii in range(0,Q):
+    Q_spN_stg2.append([])
+    Q_spN_stg3.append([])
+    Q_spDns_stg2.append([])
+    Q_spDns_stg3.append([])
+    
+for ii in range(0,4):
+    beg = int((o-1)*30*fs) + ii*qs
+    en = int((o-1)*30*fs) + (ii+1)*qs
+    for j in range(0,len(spindle_intrv_stg2)):
+        cnt=0
+        for i in range(0,len(spindle_intrv_stg2[j])):
+            if spindle_intrv_stg2[j][i][0]>=beg and spindle_intrv_stg2[j][i][0]<en:
+                cnt+=1
+        Q_spN_stg2[ii].append(cnt)
+        Q_spDns_stg2[ii].append(cnt/(len(ind2)*0.5))
+        
+        cnt=0
+        for i in range(0,len(spindle_intrv_stg3[j])):
+            if spindle_intrv_stg3[j][i][0]>=beg and spindle_intrv_stg3[j][i][0]<en:
+                cnt+=1
+        Q_spN_stg3[ii].append(cnt)
+        Q_spDns_stg3[ii].append(cnt/(len(ind3)*0.5))
+print('saving outputs to mat')
+#sio.savemat(edf_path[1:-4]+'_spindles',{"Channels":Channels,"fs":fs,"spindle_intrv_stg2":spindle_intrv_stg2,"spindle_intrv_stg3":spindle_intrv_stg3})
+slsh=[i for i in range(0,len(edf_path)) if edf_path[i]=='/']
+if not os.path.exists(edf_path[0:slsh[-1]+1]+'spindle_stats'):
+    os.makedirs(edf_path[0:slsh[-1]+1]+'spindle_stats')
+
+struct = {"Channels":Channels,"fs":fs,"spindle_intrv_stg2":spindle_intrv_stg2,"spindle_intrv_stg3":spindle_intrv_stg3,"spN_stg2":spN_stg2,"spN_stg3":spN_stg3,"Q_spN_stg2":Q_spN_stg2,"Q_spN_stg3":Q_spN_stg3,"spDns_stg2":spDns_stg2,"spDns_stg3":spDns_stg3,"Q_spDns_stg2":Q_spDns_stg2,"Q_spDns_stg3":Q_spDns_stg3}
+sio.savemat(edf_path[0:slsh[-1]+1]+'spindle_stats'+edf_path[slsh[-1]:-4]+'_spindles',struct)
